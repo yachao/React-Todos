@@ -50,8 +50,17 @@ var Header = React.createClass({
 		return (
 			<div>
 				<h1>Todos</h1>
-				<input type="checkbox" onChange={this.updateComplete} checked={status} ref="all" />
-				<input placeholder="what needs to be done" onKeyUp={this.handleKeyup} ref="task" />
+				<input
+					type="checkbox"
+					onChange={this.updateComplete}
+					checked={status}
+					ref="all"
+				/>
+				<input
+					placeholder="what needs to be done"
+					onKeyUp={this.handleKeyup}
+					ref="task"
+				/>
 			</div>
 		)
 	}
@@ -69,7 +78,12 @@ var TaskItem = React.createClass({
 	render: function(){
 		return (
 			<li>
-				<input type="checkbox" onChange={this.updateComplete} checked={this.props.status} ref="checkbox" />
+				<input
+					type="checkbox"
+					onChange={this.updateComplete}
+					checked={this.props.status}
+					ref="checkbox"
+				/>
 				{this.props.children}
 				<a href='javascript:;' onClick={this.removeTask}>x</a>
 			</li>
@@ -91,11 +105,23 @@ var Section = React.createClass({
 		this.props.tasks.forEach(function(task, i){
 			var taskStyle = task.complete?'completed':'';
 			if(task.complete){
-				lists.Completed.push(<TaskItem index={i} onChange={that.props.onChange} status={task.complete}><span className={taskStyle}>{task.content}</span></TaskItem>)
+				lists.Completed.push(
+					<TaskItem index={i} onChange={that.props.onChange} status={task.complete}>
+						<span className={taskStyle}>{task.content}</span>
+					</TaskItem>
+				)
 			}else{
-				lists.Active.push(<TaskItem index={i} onChange={that.props.onChange} status={task.complete}><span>{task.content}</span></TaskItem>)
+				lists.Active.push(
+					<TaskItem index={i} onChange={that.props.onChange} status={task.complete}>
+						<span>{task.content}</span>
+					</TaskItem>
+				)
 			}
-			lists.All.push(<TaskItem index={i} onChange={that.props.onChange} status={task.complete}><span className={taskStyle}>{task.content}</span></TaskItem>)
+			lists.All.push(
+				<TaskItem index={i} onChange={that.props.onChange} status={task.complete}>
+					<span className={taskStyle}>{task.content}</span>
+				</TaskItem>
+			)
 		});
 		items = lists[index];
 		return <div>{items}</div>
@@ -144,9 +170,19 @@ var APP = React.createClass({
 	render: function(){
 		return (
 			<div>
-				<Header tasks={this.state.items} onChange={this.handleChange} />
-				<Section tasks={this.state.items} onChange={this.handleChange} tabIndex={this.state.tabIndex} />
-				<Footer tasks={this.state.items} tabChange={this.handleTab} />
+				<Header
+					tasks={this.state.items}
+					onChange={this.handleChange}
+				/>
+				<Section
+					tasks={this.state.items}
+					onChange={this.handleChange}
+					tabIndex={this.state.tabIndex}
+				/>
+				<Footer
+					tasks={this.state.items}
+					tabChange={this.handleTab}
+				/>
 			</div>
 		)
 	}
