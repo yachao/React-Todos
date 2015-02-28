@@ -4,8 +4,12 @@
 	<meta charset="UTF-8" />
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/react/0.12.1/react.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/react/0.12.1/JSXTransformer.js"></script>
+    <script src="classnames.js"></script>
 	<style type="text/css">
-		.completed{color:#999;text-decoration:line-through;}
+		.completed span{color:#999;text-decoration:line-through;}
+		.editing .itembox{display:none;}
+		.editing input{margin-left:20px;}
+		.active{font-weight:bold;}
 	</style>
 </head>
 <body>
