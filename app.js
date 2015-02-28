@@ -1,100 +1,176 @@
 /** @jsx React.DOM */
-var _tasks = [];
-var _index = 'All';
+var ALL_Tasks = 'All',
+	ACTIVE_Tasks = 'Active',
+	COMPLETED_Tasks = 'Completed';
+var ENTER_KEY_CODE = 13;
 
-function addItem(item){
-	_tasks.push(item);
+var Tasks = {};
+var TabName = ALL_Tasks;
+
+function addItem(text){
+	var id = Math.random().toString(36).substring(2);
+	Tasks[id] = {
+		id: id,
+		complete: false,
+		content: text,
+	};
 }
 
-function removeItem(index){
-	_tasks.splice(index,1);
+function updateItem(id, text){
+	Tasks[id].content = text;
 }
 
-function isComplete(index, status){
-	_tasks[index].complete = status;
+function removeItem(id){
+	delete Tasks[id];
+}
+
+function isComplete(id, status){
+	Tasks[id].complete = status;
 }
 
 function allComplete(status){
-	_tasks.forEach(function(task, i){
-		task.complete = status;
-	})
+	for(var k in Tasks){
+		Tasks[k].complete = status;
+	}
 }
 
-var Header = React.createClass({
+var taskNum = function(){
+	var n = 0;
+	for(var k in Tasks){
+		if(Tasks.hasOwnProperty(k)) n++
+	}
+	return n;
+};
+
+var TodoInput = React.createClass({
+	getInitialState: function(){
+		return {
+			value: this.props.value || ''
+		}
+	},
+	onChange: function(event){
+		this.setState({
+			value: event.target.value
+		})
+	},
+	save: function(){
+		this.props.onSave(this.state.value);
+		this.setState({value:''})
+	},
+	onKeyDown: function(event){
+		if(event.keyCode === ENTER_KEY_CODE){
+			this.save();
+		}
+	},
+	render: function(){
+		return (
+			<input
+				placeholder={this.props.placeholder}
+				onKeyDown={this.onKeyDown}
+				value={this.state.value}
+				onChange={this.onChange}
+				onBlur={this.save}
+				autoFocus={true} />
+		)
+	}
+});
+
+var TodoHeader = React.createClass({
+	create: function(text){
+		if(text.trim()){
+			addItem(text);
+			this.props.onChange();
+		}
+	},
 	updateComplete: function(){
 		allComplete(this.refs.all.getDOMNode().checked);
 		this.props.onChange();
 	},
-	handleKeyup: function(e){
-		if(e.which === 13){
-			if(this.refs.task.getDOMNode().value){
-				addItem({
-					id: _tasks.length + 1,
-					content: e.target.value,
-					complete: false
-				});
-
-				this.props.onChange();
-
-				e.target.value = '';
-			}
-		}
-	},
 	render: function(){
-		var status = this.props.tasks.length > 0 ? true : false;
-		this.props.tasks.forEach(function(task){
-			if(task.complete === false){
-				status = false;
+		var showAllSelect = taskNum() > 0 ? true : false;
+		var allCheck = (function(){
+			for(var k in Tasks){
+				if(!Tasks[k].complete){
+					return false;
+				}
 			}
-		});
-		return (
-			<div>
-				<h1>Todos</h1>
+			return true;
+		})();
+
+		var allInput;
+		if(showAllSelect){
+			allInput = (
 				<input
 					type="checkbox"
 					onChange={this.updateComplete}
-					checked={status}
+					checked={allCheck}
 					ref="all"
 				/>
-				<input
-					placeholder="what needs to be done"
-					onKeyUp={this.handleKeyup}
-					ref="task"
-				/>
-			</div>
+			)
+		}
+		return (
+			<header>
+				<h1>Todos</h1>
+				{allInput}
+				<TodoInput placeholder="what needs to be done" onSave={this.create} />
+			</header>
 		)
 	}
 });
 
 var TaskItem = React.createClass({
+	getInitialState: function(){
+		return {
+			isEditing: false
+		}
+	},
+	doubleClick: function(){
+		this.setState({isEditing:true});
+	},
 	updateComplete: function(){
-		isComplete(this.props.index, this.refs.checkbox.getDOMNode().checked);
+		isComplete(this.props.task.id, !this.props.task.complete);
 		this.props.onChange();
 	},
 	removeTask: function(){
-		removeItem(this.props.index);
+		removeItem(this.props.task.id);
 		this.props.onChange();
 	},
+	onSave: function(text){
+		if(text.trim()){
+			updateItem(this.props.task.id, text);
+		}
+		this.setState({isEditing:false});
+	},
 	render: function(){
+		var item = this.props.task;
+		var input;
+		if (this.state.isEditing) {
+	      input =
+	        <TodoInput value={this.props.task.content} onSave={this.onSave} />;
+	    }
 		return (
-			<li>
-				<input
-					type="checkbox"
-					onChange={this.updateComplete}
-					checked={this.props.status}
-					ref="checkbox"
-				/>
-				{this.props.children}
-				<a href='javascript:;' onClick={this.removeTask}>x</a>
+			<li className={classNames({'completed': item.complete === true, 'editing': this.state.isEditing})}>
+				<div className="itembox">
+					<input
+						type="checkbox"
+						onChange={this.updateComplete}
+						checked={item.complete}
+						ref="checkbox"
+					/>
+					<span onDoubleClick={this.doubleClick}>
+						{item.content}
+					</span>&nbsp;
+					<a href='javascript:;' onClick={this.removeTask}>x</a>
+				</div>
+				{input}
 			</li>
 		)
 	}
 });
 
 
-var Section = React.createClass({
+var TodoSection = React.createClass({
 	render: function(){
-		var that = this;
 		var index = this.props.tabIndex;
 		var lists = {
 			All: [],
@@ -102,54 +178,36 @@ var Section = React.createClass({
 			Completed: []
 		};
 		var items;
-		this.props.tasks.forEach(function(task, i){
-			var taskStyle = task.complete?'completed':'';
-			if(task.complete){
-				lists.Completed.push(
-					<TaskItem index={i} onChange={that.props.onChange} status={task.complete}>
-						<span className={taskStyle}>{task.content}</span>
-					</TaskItem>
-				)
+		for(var k in Tasks){
+			if(Tasks[k].complete){
+				lists.Completed.push(<TaskItem onChange={this.props.onChange} task={Tasks[k]} />);
 			}else{
-				lists.Active.push(
-					<TaskItem index={i} onChange={that.props.onChange} status={task.complete}>
-						<span>{task.content}</span>
-					</TaskItem>
-				)
+				lists.Active.push(<TaskItem onChange={this.props.onChange} task={Tasks[k]} />)
 			}
-			lists.All.push(
-				<TaskItem index={i} onChange={that.props.onChange} status={task.complete}>
-					<span className={taskStyle}>{task.content}</span>
-				</TaskItem>
-			)
-		});
+			lists.All.push(<TaskItem onChange={this.props.onChange} task={Tasks[k]} />)
+		}
+
 		items = lists[index];
-		return <div>{items}</div>
+		return <section>{items}</section>
 	}
 });
 
 
-var Footer = React.createClass({
-	handleClick: function(e){
-		_index = e.target.innerHTML;
-		this.refs.All.getDOMNode().className = '';
-		this.refs.Active.getDOMNode().className = '';
-		this.refs.Completed.getDOMNode().className = '';
-		this.refs[_index].getDOMNode().className = 'active';
+var TodoFooter = React.createClass({
+	handleClick: function(event){
+		TabName = event.target.innerHTML;
 		this.props.tabChange();
 	},
 	render: function(){
-		var total = 0;
-		this.props.tasks.forEach(function(){
-			total += 1;
-		})
+		var current = this.props.tabIndex;
+		var num = taskNum();
 		return (
-			<div>
-				<span>{total} {total>1?'items':'item'} left</span>&nbsp;
-				<a className="active" href="javascript:;" ref="All" onClick={this.handleClick}>All</a>&nbsp;
-				<a href="javascript:;" ref="Active" onClick={this.handleClick}>Active</a>&nbsp;
-				<a href="javascript:;" ref="Completed" onClick={this.handleClick}>Completed</a>
-			</div>
+			<footer>
+				<span>{num} {num>1?'items':'item'} left</span>&nbsp;
+				<a className={classNames({'active': current === ALL_Tasks})} href="javascript:;" onClick={this.handleClick}>All</a>&nbsp;
+				<a className={classNames({'active': current === ACTIVE_Tasks})} href="javascript:;" onClick={this.handleClick}>Active</a>&nbsp;
+				<a className={classNames({'active': current === COMPLETED_Tasks})} href="javascript:;" onClick={this.handleClick}>Completed</a>
+			</footer>
 		)
 	}
 });
@@ -157,32 +215,22 @@ var Footer = React.createClass({
 var APP = React.createClass({
 	getInitialState: function(){
 		return {
-			items: _tasks,
-			tabIndex: _index
+			items: Tasks,
+			tabIndex: TabName
 		}
 	},
 	handleChange: function(){
-		this.setState({items:_tasks});
+		this.setState({items:Tasks});
 	},
 	handleTab: function(){
-		this.setState({tabIndex:_index});
+		this.setState({tabIndex:TabName});
 	},
 	render: function(){
 		return (
 			<div>
-				<Header
-					tasks={this.state.items}
-					onChange={this.handleChange}
-				/>
-				<Section
-					tasks={this.state.items}
-					onChange={this.handleChange}
-					tabIndex={this.state.tabIndex}
-				/>
-				<Footer
-					tasks={this.state.items}
-					tabChange={this.handleTab}
-				/>
+				<TodoHeader onChange={this.handleChange} />
+				<TodoSection onChange={this.handleChange} tabIndex={this.state.tabIndex} />
+				<TodoFooter tabChange={this.handleTab} tabIndex={this.state.tabIndex} />
 			</div>
 		)
 	}
